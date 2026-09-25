@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Fundo.Application.Abstractions;
 using Fundo.Application.Applications.Events;
 using Fundo.Infrastructure.Persistence;
@@ -10,12 +8,6 @@ namespace Fundo.Infrastructure.Outbox;
 // so the business data and the event are committed by the same SaveChanges.
 public sealed class OutboxApplicationEventPublisher : IApplicationEventPublisher
 {
-    // Operation is written as text so reordering the enum never changes the meaning of pending messages.
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        Converters = { new JsonStringEnumConverter<ApplicationEventOperation>() }
-    };
-
     private readonly FundoDbContext _dbContext;
 
     public OutboxApplicationEventPublisher(FundoDbContext dbContext)
@@ -29,7 +21,7 @@ public sealed class OutboxApplicationEventPublisher : IApplicationEventPublisher
     {
         ArgumentNullException.ThrowIfNull(applicationEvent);
 
-        var payload = JsonSerializer.Serialize(applicationEvent, SerializerOptions);
+        var payload = OutboxJsonSerializer.Serialize(applicationEvent);
 
         _dbContext.OutboxMessages.Add(OutboxMessage.Create(applicationEvent, payload));
     }
