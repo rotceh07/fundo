@@ -1,5 +1,37 @@
 @Fundo.Api_HostAddress = http://localhost:5176
 
+# Approved. The SSN is fictitious test data.
+POST {{Fundo.Api_HostAddress}}/api/applications
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "address": "100 Main St",
+  "state": "FL",
+  "companyName": "Acme",
+  "requestedAmount": 10000,
+  "ssn": "123-45-6789"
+}
+
+###
+
+# Denied by the NY rule.
+POST {{Fundo.Api_HostAddress}}/api/applications
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "address": "1 Broadway",
+  "state": "NY",
+  "companyName": "Acme",
+  "requestedAmount": 10000,
+  "ssn": "123-45-6780"
+}
+
+###
+
 GET {{Fundo.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
