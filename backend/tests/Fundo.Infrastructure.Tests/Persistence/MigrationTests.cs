@@ -11,7 +11,7 @@ public class MigrationTests : IAsyncLifetime
     public async Task DisposeAsync() => await _database.DisposeAsync();
 
     [Fact]
-    public async Task MigrateAsync_OnEmptyDatabase_AppliesInitialCreate()
+    public async Task MigrateAsync_OnEmptyDatabase_AppliesAllMigrations()
     {
         await using var context = _database.CreateContext();
 
@@ -19,6 +19,7 @@ public class MigrationTests : IAsyncLifetime
         var pending = await context.Database.GetPendingMigrationsAsync();
 
         Assert.Contains(applied, migration => migration.EndsWith("_InitialCreate"));
+        Assert.Contains(applied, migration => migration.EndsWith("_AddTransactionalOutbox"));
         Assert.Empty(pending);
     }
 
@@ -27,6 +28,9 @@ public class MigrationTests : IAsyncLifetime
     [InlineData("table", "LoanApplications")]
     [InlineData("index", "UX_Customers_Ssn")]
     [InlineData("index", "UX_LoanApplications_CustomerId")]
+    [InlineData("table", "OutboxMessages")]
+    [InlineData("index", "IX_OutboxMessages_ProcessedAtUtc_Id")]
+    [InlineData("index", "IX_OutboxMessages_CustomerId_Id")]
     public async Task MigrateAsync_OnEmptyDatabase_CreatesSchemaObject(string type, string name)
     {
         var count = await _database.ScalarAsync(
