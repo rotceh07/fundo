@@ -2,7 +2,7 @@ namespace Fundo.Domain.Applications;
 
 public sealed class LoanApplication
 {
-    // Only used by EF Core when materializing from the database.
+    // Required for persistence materialization.
     private LoanApplication()
     {
     }

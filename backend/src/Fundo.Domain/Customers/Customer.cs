@@ -4,7 +4,7 @@ namespace Fundo.Domain.Customers;
 
 public sealed class Customer
 {
-    // Only used by EF Core when materializing from the database.
+    // Required for persistence materialization.
     private Customer()
     {
     }
