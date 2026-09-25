@@ -39,7 +39,7 @@ public sealed class OutboxProcessor
                 continue;
             }
 
-            var error = await TryDeliverAsync(message, cancellationToken);
+            var error = await TryDeliverAsync(message, blockedCustomers, cancellationToken);
 
             if (error is null)
             {
@@ -58,7 +58,10 @@ public sealed class OutboxProcessor
 
     // Returns null when the message was delivered, otherwise a generic error that is safe to store.
     // Unexpected exceptions are not caught so a bug surfaces instead of turning into endless retries.
-    private async Task<string?> TryDeliverAsync(OutboxMessage message, CancellationToken cancellationToken)
+    private async Task<string?> TryDeliverAsync(
+        OutboxMessage message,
+        HashSet<Guid> blockedCustomers,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(message.Payload))
         {
@@ -78,6 +81,9 @@ public sealed class OutboxProcessor
 
         if (applicationEvent.CustomerId != message.CustomerId)
         {
+            // We cannot tell which id is correct, so the payload customer is blocked too.
+            // Otherwise a later message of that customer could be delivered ahead of this one.
+            blockedCustomers.Add(applicationEvent.CustomerId);
             return "Outbox payload customer does not match message metadata.";
         }
 

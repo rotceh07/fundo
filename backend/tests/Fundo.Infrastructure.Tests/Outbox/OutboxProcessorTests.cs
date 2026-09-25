@@ -252,23 +252,30 @@ public class OutboxProcessorTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ProcessPendingAsync_WithCustomerMismatch_RegistersFailureWithoutCallingService()
+    public async Task ProcessPendingAsync_WithCustomerMismatch_BlocksBothCustomersWithoutCallingService()
     {
         await SeedAsync(
             NewEvent(CustomerA, ApplicationEventOperation.Create),
             NewEvent(CustomerA, ApplicationEventOperation.Update));
         var firstId = (await LoadMessagesAsync())[0].Id;
+
+        // Metadata says customer B while the payload still says customer A.
         await CorruptAsync(context => context.OutboxMessages
             .Where(x => x.Id == firstId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.CustomerId, CustomerB)));
 
         await ProcessAsync();
 
-        Assert.Equal([(CustomerA, ApplicationEventOperation.Update)], _client.Calls);
-        var mismatched = (await LoadMessagesAsync())[0];
-        Assert.Equal(1, mismatched.RetryCount);
-        Assert.Equal("Outbox payload customer does not match message metadata.", mismatched.LastError);
-        Assert.Null(mismatched.ProcessedAtUtc);
+        Assert.Empty(_client.Calls);
+
+        var messages = await LoadMessagesAsync();
+        Assert.Equal(1, messages[0].RetryCount);
+        Assert.Equal("Outbox payload customer does not match message metadata.", messages[0].LastError);
+        Assert.Null(messages[0].ProcessedAtUtc);
+
+        Assert.Equal(0, messages[1].RetryCount);
+        Assert.Null(messages[1].ProcessedAtUtc);
+        Assert.NotNull(messages[1].Payload);
     }
 
     private sealed class FakeExternalClient : IExternalApplicationClient
